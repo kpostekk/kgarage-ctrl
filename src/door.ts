@@ -32,8 +32,8 @@ export class GarageDoorControl extends EventEmitter {
 
     this.setCurrent(
       {
-        [TargetStates.OPEN]: CurrentStates.CLOSING,
-        [TargetStates.CLOSE]: CurrentStates.OPENING,
+        [TargetStates.OPEN]: CurrentStates.OPENING,
+        [TargetStates.CLOSE]: CurrentStates.CLOSING,
       }[target],
     )
 
@@ -45,6 +45,12 @@ export class GarageDoorControl extends EventEmitter {
   }
 
   private waitForTarget(): Promise<void> {
+    if (platform() === "win32") {
+      setTimeout(() => {
+        this.setCurrent(this.target)
+      }, 1000 + Math.random() * 3000)
+    }
+
     return new Promise<void>((resolve, reject) => {
       const interval = setInterval(() => {
         this.readHardwareState()
@@ -62,7 +68,6 @@ export class GarageDoorControl extends EventEmitter {
       }, 100)
 
       setTimeout(() => {
-        this.setCurrent(CurrentStates.STOPPED)
         reject()
       }, this.changeTimeout)
     })
