@@ -48,7 +48,7 @@ export class GarageDoorControl extends EventEmitter {
     if (platform() === "win32") {
       setTimeout(() => {
         this.setCurrent(this.target)
-      }, 1000 + Math.random() * 3000)
+      }, 3000 + Math.random() * 500)
     }
 
     return new Promise<void>((resolve, reject) => {

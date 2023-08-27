@@ -48,7 +48,6 @@ export class ControlTCPServer extends Server {
     socket.on("data", (buffer: Buffer) => {
       try {
         const packet = this.validateBuffer(buffer)
-        console.debug(packet)
         this.control(packet, socket)
       } catch (error) {
         socket.end()
@@ -71,6 +70,7 @@ export class ControlTCPServer extends Server {
         socket.write(this.gdc.getState().toString())
         break
       case "SET":
+        console.debug(new Date(), socket.remoteAddress, packet)
         this.gdc.requestTarget(packet.target)
         break
     }
