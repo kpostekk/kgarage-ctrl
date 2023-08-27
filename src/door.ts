@@ -9,6 +9,13 @@ export class GarageDoorControl extends EventEmitter {
 
   constructor(private readonly dryRun?: boolean) {
     super()
+    
+    if (!this.dryRun) {
+      setInterval(() => {
+        this.readHardwareState()
+        this.emit("current", this.current)
+      }, 5_000)
+    }
   }
 
   public requestTarget(target: TargetStates) {
