@@ -11,13 +11,17 @@ yargs(hideBin(process.argv))
     "tcp",
     "Start TCP server",
     (y) =>
-      y.option("host", {
-        type: "string",
-        default: "0.0.0.0",
-        demandOption: false,
-      }),
-    async ({ port, host, secret }) => {
-      const server = new ControlTCPServer(secret)
+      y
+        .option("host", {
+          type: "string",
+          default: "0.0.0.0",
+          demandOption: false,
+        })
+        .option("dryRun", { type: "boolean", default: false }),
+    async ({ port, host, secret, dryRun }) => {
+      const server = new ControlTCPServer(secret, {
+        dryRun,
+      })
       server.listen(port, host)
     },
   )

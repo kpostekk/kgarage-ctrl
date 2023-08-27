@@ -1,6 +1,5 @@
 import EventEmitter from "events"
 import { CurrentStates, TargetStates } from "./lib/states"
-import { platform } from "os"
 
 export class GarageDoorControl extends EventEmitter {
   private target: TargetStates = TargetStates.CLOSE
@@ -8,7 +7,7 @@ export class GarageDoorControl extends EventEmitter {
 
   private readonly changeTimeout = 20_000
 
-  constructor() {
+  constructor(private readonly dryRun?: boolean) {
     super()
   }
 
@@ -45,7 +44,7 @@ export class GarageDoorControl extends EventEmitter {
   }
 
   private waitForTarget(): Promise<void> {
-    if (platform() === "win32") {
+    if (this.dryRun) {
       setTimeout(() => {
         this.setCurrent(this.target)
       }, 3000 + Math.random() * 500)
@@ -74,7 +73,7 @@ export class GarageDoorControl extends EventEmitter {
   }
 
   private readHardwareState() {
-    if (platform() === "win32") return
+    if (this.dryRun) return
     const { Gpio } = require("pigpio")
     const p5 = new Gpio(5, { mode: Gpio.INPUT, pullUpDown: Gpio.PUD_UP }) // open state
     const p6 = new Gpio(6, { mode: Gpio.INPUT, pullUpDown: Gpio.PUD_UP }) // close state
@@ -94,7 +93,7 @@ export class GarageDoorControl extends EventEmitter {
   }
 
   private writeSignal() {
-    if (platform() === "win32") return
+    if (this.dryRun) return
     const { Gpio } = require("pigpio")
     const p4 = new Gpio(18, { mode: Gpio.OUTPUT })
     p4.digitalWrite(1)

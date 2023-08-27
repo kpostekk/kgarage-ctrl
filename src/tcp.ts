@@ -4,14 +4,19 @@ import { signPayload, checkSignature } from "./lib/signature"
 import { CurrentStates } from "./lib/states"
 import { GarageDoorControl } from "./door"
 
+export type ControlOptions = {
+  dryRun?: boolean
+}
+
 export class ControlTCPServer extends Server {
   private readonly gdc: GarageDoorControl
 
   constructor(
     private readonly secret: string,
+    options?: ControlOptions
   ) {
     super()
-    this.gdc = new GarageDoorControl()
+    this.gdc = new GarageDoorControl(options?.dryRun)
     this.on("connection", this.handleConnection)
   }
 
