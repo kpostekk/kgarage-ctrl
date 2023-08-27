@@ -48,6 +48,7 @@ export class ControlTCPServer extends Server {
     socket.on("data", (buffer: Buffer) => {
       try {
         const packet = this.validateBuffer(buffer)
+        console.debug(packet)
         this.control(packet, socket)
       } catch (error) {
         socket.end()
