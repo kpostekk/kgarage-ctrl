@@ -93,18 +93,3 @@ export class ControlTCPClient extends Socket {
     this.write(JSON.stringify(signedPacket))
   }
 }
-
-// const server = new ControlTCPServer()
-// server.listen(11001)
-
-// const client = createConnection({
-//   port: 11001,
-//   host: 'localhost'
-// })
-
-// const payload: ControlPacket = {
-//   action: 'SET',
-//   value: 0
-// }
-
-// client.write(JSON.stringify(payload))

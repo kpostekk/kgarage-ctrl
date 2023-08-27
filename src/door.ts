@@ -1,6 +1,6 @@
 import EventEmitter from "events"
 import { CurrentStates, TargetStates } from "./lib/states"
-import { Gpio } from 'pigpio'
+import { platform } from "os"
 
 export class GarageDoorControl extends EventEmitter {
   private target: TargetStates = TargetStates.CLOSE
@@ -10,9 +10,6 @@ export class GarageDoorControl extends EventEmitter {
 
   constructor() {
     super()
-    setInterval(() => {
-      this.readHardwareState()
-    }, 500)
   }
 
   public requestTarget(target: TargetStates) {
@@ -33,10 +30,14 @@ export class GarageDoorControl extends EventEmitter {
     this.target = target
     this.emit("target", target)
 
-    this.setCurrent({
-      [TargetStates.OPEN]: CurrentStates.CLOSING,
-      [TargetStates.CLOSE]: CurrentStates.OPENING,
-    }[target])
+    this.setCurrent(
+      {
+        [TargetStates.OPEN]: CurrentStates.CLOSING,
+        [TargetStates.CLOSE]: CurrentStates.OPENING,
+      }[target],
+    )
+
+    this.writeSignal()
 
     this.waitForTarget().catch(() => {
       this.setCurrent(CurrentStates.STOPPED)
@@ -45,26 +46,56 @@ export class GarageDoorControl extends EventEmitter {
 
   private waitForTarget(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      setTimeout(
-        () => {
-          if (this.current === CurrentStates.STOPPED) return
+      const interval = setInterval(() => {
+        this.readHardwareState()
 
-          this.current = this.target
-          this.emit("current", this.current)
+        if (this.current === CurrentStates.STOPPED) {
+          reject()
+          return
+        }
+
+        if (this.targetResolved) {
+          clearInterval(interval)
           resolve()
-        },
-        5500 + Math.random() * 900,
-      )
+          return
+        }
+      }, 100)
+
+      setTimeout(() => {
+        this.setCurrent(CurrentStates.STOPPED)
+        reject()
+      }, this.changeTimeout)
     })
   }
 
   private readHardwareState() {
-    const p5 = new Gpio(5, { mode: Gpio.INPUT, pullUpDown: Gpio.PUD_UP, alert: true })
-    const p6 = new Gpio(6, { mode: Gpio.INPUT, pullUpDown: Gpio.PUD_UP, alert: true })
-    // gpio 18 is to send change 
+    if (platform() === "win32") return
+    const { Gpio } = require("pigpio")
+    const p5 = new Gpio(5, { mode: Gpio.INPUT, pullUpDown: Gpio.PUD_UP }) // open state
+    const p6 = new Gpio(6, { mode: Gpio.INPUT, pullUpDown: Gpio.PUD_UP }) // close state
 
-    console.log('p5', p5.digitalRead())
-    console.log('p6', p6.digitalRead())
+    const isGarageOpen = p5.digitalRead() === 1
+    const isGarageClosed = p6.digitalRead() === 1
+
+    if (isGarageOpen && isGarageClosed) {
+      throw new Error("Garage door is in an invalid state")
+    }
+
+    if (isGarageOpen) {
+      this.setCurrent(CurrentStates.OPEN)
+    } else if (isGarageClosed) {
+      this.setCurrent(CurrentStates.CLOSE)
+    }
+  }
+
+  private writeSignal() {
+    if (platform() === "win32") return
+    const { Gpio } = require("pigpio")
+    const p4 = new Gpio(18, { mode: Gpio.OUTPUT })
+    p4.digitalWrite(1)
+    setTimeout(() => {
+      p4.digitalWrite(0)
+    }, 500)
   }
 
   private setCurrent(current: CurrentStates) {
@@ -73,6 +104,7 @@ export class GarageDoorControl extends EventEmitter {
   }
 
   public getState() {
+    this.readHardwareState()
     return this.current
   }
 
