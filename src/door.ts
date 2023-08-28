@@ -4,6 +4,7 @@ import { CurrentStates, TargetStates } from "./lib/states"
 export class GarageDoorControl extends EventEmitter {
   private target: TargetStates = TargetStates.CLOSE
   private current: CurrentStates = CurrentStates.CLOSE
+  private controlling = false
 
   private readonly changeTimeout = 20_000
 
@@ -12,6 +13,7 @@ export class GarageDoorControl extends EventEmitter {
     
     if (!this.dryRun) {
       setInterval(() => {
+        if (this.controlling) return
         this.readHardwareState()
         this.emit("current", this.current)
       }, 5_000)
@@ -33,6 +35,8 @@ export class GarageDoorControl extends EventEmitter {
       return
     }
 
+    this.controlling = true
+
     this.target = target
     this.emit("target", target)
 
@@ -45,8 +49,11 @@ export class GarageDoorControl extends EventEmitter {
 
     this.writeSignal()
 
-    this.waitForTarget().catch(() => {
+    this.waitForTarget().then(() => {
+      this.controlling = false
+    }).catch(() => {
       this.setCurrent(CurrentStates.STOPPED)
+      this.controlling = false
     })
   }
 
