@@ -5,7 +5,7 @@ export class GarageDoorControl extends EventEmitter {
   private target: TargetStates = TargetStates.CLOSE
   private current: CurrentStates = CurrentStates.CLOSE
 
-  private readonly changeTimeout = 20_000
+  private readonly changeTimeout = 45_000
 
   constructor(private readonly dryRun?: boolean) {
     super()
@@ -14,7 +14,7 @@ export class GarageDoorControl extends EventEmitter {
       setInterval(() => {
         this.readHardwareState()
         this.emit("current", this.current)
-      }, 1_000)
+      }, 2_000)
     }
   }
 
