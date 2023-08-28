@@ -49,10 +49,13 @@ export class GarageDoorControl extends EventEmitter {
     this.writeSignal()
 
     // if gate hasn't reached target state in 20 seconds, set stopped state
-    setTimeout(() => {
-      if (this.targetResolved) return
+    const doorTimeout = setTimeout(() => {
       this.setCurrent(CurrentStates.STOPPED)
     }, this.changeTimeout)
+
+    this.once("current", () => {
+      if (this.targetResolved) clearTimeout(doorTimeout)
+    })
   }
 
   /**
