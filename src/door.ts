@@ -73,6 +73,11 @@ export class GarageDoorControl extends EventEmitter {
       this.setCurrent(CurrentStates.OPEN)
     } else if (isGarageClosed) {
       this.setCurrent(CurrentStates.CLOSE)
+    } else if (!this.isMoving && !this.isStopped) {
+      // this can happen when someone manually opens or closes the gate
+      const counterTarget = Number(!this.target) as TargetStates
+      this.updateTransitionalState(counterTarget)
+      this.target = counterTarget
     }
   }
 
