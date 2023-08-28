@@ -44,6 +44,12 @@ export class ControlTCPServer extends Server {
   }
 
   private handleConnection(socket: Socket) {
+    console.log(
+      new Date(),
+      socket.remoteAddress,
+      "connected"
+    )
+
     const currentStateHandler = (state: CurrentStates) => {
       socket.write(state.toString())
     }
@@ -62,10 +68,20 @@ export class ControlTCPServer extends Server {
 
     socket.on("close", () => {
       this.gdc.off('current', currentStateHandler)
+      console.log(
+        new Date(),
+        socket.remoteAddress,
+        "disconnected"
+      )
     })
 
     socket.on("error", (error) => {
       console.error(error)
+      console.log(
+        new Date(),
+        socket.remoteAddress,
+        "disconnected (err)"
+      )
     })
   }
 
