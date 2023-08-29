@@ -1,4 +1,8 @@
-import { ControlPacket, ControlRequest, SignedControlPacket } from "./lib/validator"
+import {
+  ControlPacket,
+  ControlRequest,
+  SignedControlPacket,
+} from "./lib/validator"
 import { Server, Socket } from "net"
 import { signPayload, checkSignature } from "./lib/signature"
 import { CurrentStates } from "./lib/states"
@@ -50,9 +54,7 @@ export class ControlTCPServer extends Server {
       socket.write(JSON.stringify(state))
     }
 
-    this.gdc
-      .on("current", currentStateHandler)
-      .on("target", currentStateHandler)
+    this.gdc.on("current", currentStateHandler)
 
     socket.on("data", (buffer: Buffer) => {
       try {
@@ -65,9 +67,7 @@ export class ControlTCPServer extends Server {
     })
 
     socket.on("close", () => {
-      this.gdc
-        .off("current", currentStateHandler)
-        .off("target", currentStateHandler)
+      this.gdc.off("current", currentStateHandler)
       console.log(new Date(), socket.remoteAddress, "disconnected")
     })
 
@@ -114,11 +114,11 @@ export class ControlTCPClient extends Socket {
 
   public async waitForSync() {
     this.sendControlPacket({
-      action: 'SYNC',
+      action: "SYNC",
     })
 
     await new Promise((resolve) => {
-      this.once('data', resolve)
+      this.once("data", resolve)
     })
   }
 }

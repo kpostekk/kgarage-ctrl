@@ -5,7 +5,7 @@ export class GarageDoorControl extends EventEmitter {
   private target: TargetStates = TargetStates.CLOSE
   private current: CurrentStates = CurrentStates.CLOSE
 
-  private readonly changeTimeout = 45_000
+  private readonly changeTimeout = 20_000
 
   constructor(private readonly dryRun?: boolean) {
     super()
@@ -16,15 +16,15 @@ export class GarageDoorControl extends EventEmitter {
 
     // if target has changed, but gate has stopped
     if (this.isStopped) {
-      this.setTarget(Number(!target) as TargetStates)
-      this.updateTransitionalState(this.target)
+      this.updateTransitionalState(Number(!this.target) as TargetStates)
+      this.emit("current", this.state)
       this.writeSignal()
       return
     }
 
     // if target was requested while moving, set stopped state
     if (this.isMoving) {
-      this.setCurrent(CurrentStates.STOPPED)
+      this.publishCurrent(CurrentStates.STOPPED)
       this.writeSignal()
       return
     }
@@ -35,18 +35,22 @@ export class GarageDoorControl extends EventEmitter {
       return
     }
 
-    this.setTarget(target)
+    this.target = target
 
     this.updateTransitionalState(target)
+    this.emit("current", this.state)
     this.writeSignal()
 
     // if gate hasn't reached target state in 20 seconds, set stopped state
     const doorTimeout = setTimeout(() => {
-      this.setCurrent(CurrentStates.STOPPED)
+      console.log(new Date(), "doorTimeout")
+      this.publishCurrent(CurrentStates.STOPPED)
     }, this.changeTimeout)
 
     this.once("current", () => {
-      if (this.targetResolved) clearTimeout(doorTimeout)
+      if (!this.targetResolved) return
+      console.log(new Date(), "clearTimeout stopped")
+      clearTimeout(doorTimeout)
     })
   }
 
@@ -65,14 +69,13 @@ export class GarageDoorControl extends EventEmitter {
     const isGarageClosed: boolean = p6.digitalRead() && !p5.digitalRead()
 
     if (isGarageOpen) {
-      this.setCurrent(CurrentStates.OPEN)
+      this.publishCurrent(CurrentStates.OPEN)
     } else if (isGarageClosed) {
-      this.setCurrent(CurrentStates.CLOSE)
+      this.publishCurrent(CurrentStates.CLOSE)
     } else if (!this.isMoving && !this.isStopped) {
       // this can happen when someone manually opens or closes the gate
       const counterTarget = Number(!this.target) as TargetStates
       this.updateTransitionalState(counterTarget)
-      this.setTarget(counterTarget)
     }
   }
 
@@ -84,7 +87,7 @@ export class GarageDoorControl extends EventEmitter {
     if (this.dryRun) {
       setTimeout(
         () => {
-          this.setCurrent(this.target)
+          this.publishCurrent(this.target)
         },
         5000 + Math.random() * 1000,
       )
@@ -99,17 +102,7 @@ export class GarageDoorControl extends EventEmitter {
     }, 500)
   }
 
-  private setTarget(target: TargetStates) {
-    if (this.target === target) return
-    console.log(new Date(), "target", {
-      from: this.target,
-      to: target,
-    })
-    this.target = target
-    this.emit("target", this.state)
-  }
-
-  private setCurrent(current: CurrentStates) {
+  private publishCurrent(current: CurrentStates) {
     if (this.current === current) return
     console.log(new Date(), "current", {
       from: this.current,
@@ -138,12 +131,10 @@ export class GarageDoorControl extends EventEmitter {
   }
 
   private updateTransitionalState(target: TargetStates) {
-    this.setCurrent(
-      {
-        [TargetStates.OPEN]: CurrentStates.OPENING,
-        [TargetStates.CLOSE]: CurrentStates.CLOSING,
-      }[target],
-    )
+    this.current = {
+      [TargetStates.OPEN]: CurrentStates.OPENING,
+      [TargetStates.CLOSE]: CurrentStates.CLOSING,
+    }[target]
   }
 
   public get targetResolved(): boolean {
