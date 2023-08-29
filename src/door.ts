@@ -9,6 +9,11 @@ export class GarageDoorControl extends EventEmitter {
 
   constructor(private readonly dryRun?: boolean) {
     super()
+
+    setInterval(() => {
+      this.readHardwareState()
+      this.emit("current", this.state)
+    }, 1000)
   }
 
   public requestTarget(target: TargetStates) {
@@ -30,7 +35,7 @@ export class GarageDoorControl extends EventEmitter {
     }
 
     // ignore target change because it is already set
-    if (this.target === target) {
+    if (this.target === target || this.current === target) {
       this.emit("current", this.state)
       return
     }
@@ -40,6 +45,7 @@ export class GarageDoorControl extends EventEmitter {
     this.updateTransitionalState(target)
     this.emit("current", this.state)
     this.writeSignal()
+
 
     // if gate hasn't reached target state in 20 seconds, set stopped state
     const doorTimeout = setTimeout(() => {
