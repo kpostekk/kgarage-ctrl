@@ -9,13 +9,6 @@ export class GarageDoorControl extends EventEmitter {
 
   constructor(private readonly dryRun?: boolean) {
     super()
-
-    if (!this.dryRun) {
-      setInterval(() => {
-        this.readHardwareState()
-        this.emit("current", this.current)
-      }, 2_000)
-    }
   }
 
   public requestTarget(target: TargetStates) {
@@ -23,7 +16,7 @@ export class GarageDoorControl extends EventEmitter {
 
     // if target has changed, but gate has stopped
     if (this.isStopped) {
-      this.target = Number(!target) as TargetStates
+      this.setTarget(Number(!target) as TargetStates)
       this.updateTransitionalState(this.target)
       this.writeSignal()
       return
@@ -42,8 +35,7 @@ export class GarageDoorControl extends EventEmitter {
       return
     }
 
-    this.target = target
-    this.emit("target", target)
+    this.setTarget(target)
 
     this.updateTransitionalState(target)
     this.writeSignal()
@@ -61,7 +53,7 @@ export class GarageDoorControl extends EventEmitter {
   /**
    * Reads the hardware state and sets the current state.
    * This is called every second.
-   * Can be read on demand. 
+   * Can be read on demand.
    */
   private readHardwareState() {
     if (this.dryRun) return
@@ -80,7 +72,7 @@ export class GarageDoorControl extends EventEmitter {
       // this can happen when someone manually opens or closes the gate
       const counterTarget = Number(!this.target) as TargetStates
       this.updateTransitionalState(counterTarget)
-      this.target = counterTarget
+      this.setTarget(counterTarget)
     }
   }
 
@@ -90,9 +82,12 @@ export class GarageDoorControl extends EventEmitter {
    */
   private writeSignal() {
     if (this.dryRun) {
-      setTimeout(() => {
-        this.setCurrent(this.target)
-      }, 5000 + Math.random() * 1000)
+      setTimeout(
+        () => {
+          this.setCurrent(this.target)
+        },
+        5000 + Math.random() * 1000,
+      )
       return
     }
 
@@ -104,19 +99,24 @@ export class GarageDoorControl extends EventEmitter {
     }, 500)
   }
 
+  private setTarget(target: TargetStates) {
+    if (this.target === target) return
+    console.log(new Date(), "target", {
+      from: this.target,
+      to: target,
+    })
+    this.target = target
+    this.emit("target", this.target)
+  }
+
   private setCurrent(current: CurrentStates) {
     if (this.current === current) return
-    console.log(new Date(), {
+    console.log(new Date(), "current", {
       from: this.current,
       to: current,
     })
     this.current = current
     this.emit("current", this.current)
-  }
-
-  public getState() {
-    this.readHardwareState()
-    return this.current
   }
 
   private get isMoving(): boolean {
@@ -149,4 +149,14 @@ export class GarageDoorControl extends EventEmitter {
   public get targetResolved(): boolean {
     return this.target === this.current
   }
+
+  public get state() {
+    this.readHardwareState()
+    return {
+      current: this.current,
+      target: this.target,
+    }
+  }
 }
+
+export type GarageDoorState = GarageDoorControl["state"]
