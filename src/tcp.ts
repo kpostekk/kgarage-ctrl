@@ -2,7 +2,7 @@ import { ControlPacket, SignedControlPacket } from "./lib/validator"
 import { Server, Socket } from "net"
 import { signPayload, checkSignature } from "./lib/signature"
 import { CurrentStates } from "./lib/states"
-import { GarageDoorControl } from "./door"
+import { GarageDoorControl, GarageDoorState } from "./door"
 
 export type ControlOptions = {
   dryRun?: boolean
@@ -13,7 +13,7 @@ export class ControlTCPServer extends Server {
 
   constructor(
     private readonly secret: string,
-    options?: ControlOptions
+    options?: ControlOptions,
   ) {
     super()
     this.gdc = new GarageDoorControl(options?.dryRun)
@@ -44,17 +44,15 @@ export class ControlTCPServer extends Server {
   }
 
   private handleConnection(socket: Socket) {
-    console.log(
-      new Date(),
-      socket.remoteAddress,
-      "connected"
-    )
+    console.log(new Date(), socket.remoteAddress, "connected")
 
-    const currentStateHandler = (state: CurrentStates) => {
-      socket.write(state.toString())
+    const currentStateHandler = (state: GarageDoorState) => {
+      socket.write(JSON.stringify(state))
     }
 
-    this.gdc.on('current', currentStateHandler)
+    this.gdc
+      .on("current", currentStateHandler)
+      .on("target", currentStateHandler)
 
     socket.on("data", (buffer: Buffer) => {
       try {
@@ -67,28 +65,22 @@ export class ControlTCPServer extends Server {
     })
 
     socket.on("close", () => {
-      this.gdc.off('current', currentStateHandler)
-      console.log(
-        new Date(),
-        socket.remoteAddress,
-        "disconnected"
-      )
+      this.gdc
+        .off("current", currentStateHandler)
+        .off("target", currentStateHandler)
+      console.log(new Date(), socket.remoteAddress, "disconnected")
     })
 
     socket.on("error", (error) => {
       console.error(error)
-      console.log(
-        new Date(),
-        socket.remoteAddress,
-        "disconnected (err)"
-      )
+      console.log(new Date(), socket.remoteAddress, "disconnected (err)")
     })
   }
 
   private control(packet: ControlPacket, socket: Socket) {
     switch (packet.action) {
       case "SYNC":
-        socket.write(this.gdc.getState().toString())
+        socket.write(JSON.stringify(this.gdc.state))
         break
       case "SET":
         console.debug(new Date(), socket.remoteAddress, packet)
