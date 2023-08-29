@@ -95,15 +95,32 @@ export class ControlTCPClient extends Socket {
     super()
   }
 
-  public sendControlPacket(packet: ControlPacket) {
+  public sendControlPacket(packet: Omit<ControlPacket, 'timestamp'>) {
+    const payload = ControlPacket.parse({
+      ...packet,
+      timestamp: Date.now(),
+    })
+
     const signedPacket: SignedControlPacket = {
-      payload: packet,
+      payload,
       signature: signPayload({
-        payload: packet,
+        payload,
         secret: this.secret,
       }),
     }
 
+    packet
+
     this.write(JSON.stringify(signedPacket))
+  }
+
+  public async waitForSync() {
+    this.sendControlPacket({
+      action: 'SYNC',
+    })
+
+    await new Promise((resolve) => {
+      this.once('data', resolve)
+    })
   }
 }
