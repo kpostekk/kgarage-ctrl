@@ -37,7 +37,7 @@ yargs(hideBin(process.argv))
           action: "SYNC",
         })
         client.on("data", (data) => {
-          console.log(data.toString())
+          console.log(new Date(), JSON.parse(data.toString()))
         })
       })
     },
@@ -60,10 +60,9 @@ yargs(hideBin(process.argv))
           target,
         })
         client.on("data", (data) => {
-          const state = Number(data.toString())
-          console.log({ state })
-          if (state === target) {
-            console.log("OK")
+          const state = JSON.parse(data.toString())
+          console.log(new Date(), state)
+          if (state.target === target) {
             client.end()
           }
         })
