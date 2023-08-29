@@ -1,4 +1,4 @@
-import { ControlPacket, SignedControlPacket } from "./lib/validator"
+import { ControlPacket, ControlRequest, SignedControlPacket } from "./lib/validator"
 import { Server, Socket } from "net"
 import { signPayload, checkSignature } from "./lib/signature"
 import { CurrentStates } from "./lib/states"
@@ -95,7 +95,7 @@ export class ControlTCPClient extends Socket {
     super()
   }
 
-  public sendControlPacket(packet: Omit<ControlPacket, 'timestamp'>) {
+  public sendControlPacket(packet: ControlRequest) {
     const payload = ControlPacket.parse({
       ...packet,
       timestamp: Date.now(),
@@ -108,8 +108,6 @@ export class ControlTCPClient extends Socket {
         secret: this.secret,
       }),
     }
-
-    packet
 
     this.write(JSON.stringify(signedPacket))
   }

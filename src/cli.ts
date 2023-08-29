@@ -35,7 +35,6 @@ yargs(hideBin(process.argv))
       client.once("connect", () => {
         client.sendControlPacket({
           action: "SYNC",
-          timestamp: Date.now(),
         })
         client.on("data", (data) => {
           console.log(data.toString())
@@ -59,7 +58,6 @@ yargs(hideBin(process.argv))
         client.sendControlPacket({
           action: "SET",
           target,
-          timestamp: Date.now(),
         })
         client.on("data", (data) => {
           const state = Number(data.toString())
