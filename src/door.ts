@@ -31,7 +31,7 @@ export class GarageDoorControl extends EventEmitter {
 
     // ignore target change because it is already set
     if (this.target === target) {
-      this.emit("current", this.current)
+      this.emit("current", this.state)
       return
     }
 
@@ -106,7 +106,7 @@ export class GarageDoorControl extends EventEmitter {
       to: target,
     })
     this.target = target
-    this.emit("target", this.target)
+    this.emit("target", this.state)
   }
 
   private setCurrent(current: CurrentStates) {
@@ -116,7 +116,7 @@ export class GarageDoorControl extends EventEmitter {
       to: current,
     })
     this.current = current
-    this.emit("current", this.current)
+    this.emit("current", this.state)
   }
 
   private get isMoving(): boolean {
